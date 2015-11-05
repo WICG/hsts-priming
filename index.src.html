@@ -1,0 +1,304 @@
+<h1>HSTS Priming</h1>
+<pre class="metadata">
+Status: DREAM
+ED: https://w3c.github.io/webappsec-hsts-priming/
+Shortname: hsts-priming
+Level: 1
+Editor: Richard Barnes, Mozilla
+Editor: Mike West 56384, Google Inc., mkwst@google.com
+Abstract:
+  This document proposes modifications to Strict Transport Security's behavior
+  in order to mitigate the risk that mixed content blocking will prevent
+  migrations from HTTP to HTTPS.
+Indent: 2
+Markup Shorthands: markdown on
+Boilerplate: omit conformance, omit feedback-header
+</pre>
+<pre class="anchors">
+urlPrefix: http://www.w3.org/TR/dom/; spec: DOM
+  type: interface
+    text: Document; url: interface-document
+    text: Window; url: interface-window
+urlPrefix: https://fetch.spec.whatwg.org/; spec: FETCH
+  type: interface
+    text: Response
+  type: dfn
+    text: basic fetch
+urlPrefix: http://www.w3.org/TR/geolocation-API/; spec: GEOLOCATION-API
+  type: method
+    text: getCurrentPosition(); url: get-current-position
+    text: watchPosition(); url: watch-position
+urlPrefix: http://www.w3.org/TR/html5/; spec: HTML5
+  type: dfn
+    urlPrefix: embedded-content-0.html
+      text: an iframe srcdoc document
+    urlPrefix: browsers.html
+      text: active document
+      text: ancestor browsing context
+      text: browsing context
+      text: browsing context container
+      text: creating a new Document object
+      text: creator Document
+      text: nested browsing context
+      text: sandboxed origin browsing context flag
+      text: sandboxing flag set
+      text: top-level browsing context
+      text: origin
+      text: opaque identifier; url: origin
+    urlPrefix: webappapis.html
+      text: incumbent settings object
+      text: settings object
+      text: relevant settings object; url: relevant-settings-object-for-a-global-object
+      text: responsible document
+      text: global object
+      text: script settings for browsing contexts
+      text: document environment
+      text: worker environment
+  type: attribute
+    urlPrefix: webstorage.html
+      text: sessionStorage; for: WindowSessionStorage; url: the-sessionstorage-attribute
+urlPrefix: http://www.w3.org/TR/mixed-content/; spec: MIX
+  type: dfn
+    text: a priori authenticated url
+urlPrefix: http://www.w3.org/TR/service-workers/; spec: SERVICE-WORKERS
+  type: interface
+    text: ServiceWorker; url: service-worker-obj
+urlPrefix: http://www.w3.org/2014/Process-20140801/; spec: W3C-PROCESS
+  type: dfn
+    text: modify a specification; url: rec-modify
+urlPrefix: https://url.spec.whatwg.org/; spec: URL
+  type: dfn
+    text: origin of a url; url: concept-url-origin
+    text: scheme; for: URL; url: concept-url-scheme
+  type: interface
+    text: URL
+urlPrefix: https://html.spec.whatwg.org/multipage/; spec: HTML
+  type: dfn
+    urlPrefix: workers.html
+      text: the worker's documents
+      text: set up a worker environment settings object
+    urlPrefix: webappapis.html
+      text: creation URL
+      text: HTTPS state
+  type: constructor
+    urlPrefix: workers.html
+      text: SharedWorker(); url: dom-sharedworker
+  type: interface
+    urlPrefix: workers.html
+      text: WorkerGlobalScope
+      text: Worker
+      text: SharedWorker
+</pre>
+<pre class="biblio">
+{
+  "TRANSITIONAL": {
+      "href": "http://webappsec-test.info/~bhill2/DifferentTakeOnOE.html",
+      "title": "Why isn't HTTPS everywhere yet?",
+      "authors": [ "Brad Hill" ]
+  }
+}
+</pre>
+<!--
+████ ██    ██ ████████ ████████   ███████
+ ██  ███   ██    ██    ██     ██ ██     ██
+ ██  ████  ██    ██    ██     ██ ██     ██
+ ██  ██ ██ ██    ██    ████████  ██     ██
+ ██  ██  ████    ██    ██   ██   ██     ██
+ ██  ██   ███    ██    ██    ██  ██     ██
+████ ██    ██    ██    ██     ██  ███████
+-->
+<section>
+  <h2 id="intro">Introduction</h2>
+
+  <em>This section is not normative.</em>
+
+  Migrating sites onto HTTPS is difficult. It has been our common understanding
+  that these difficulties were wrapped up in server configuration, performance,
+  and certificate maintenance. It's recently become clear that the true
+  challenges lie elsewhere. In particular, opting into secure transport comes
+  with a number of restrictions which ensure that "secure" really means
+  something. Mixed Content in particular can block an upgrade entirely. Brad
+  Hill has laid out an excellent explanation of the challenges that mixed
+  content blocking presents, and pointed out a number of situations in which
+  cross-dependencies between insecure Origin A and Origin B might cause real
+  deadlock where no one is able to upgrade without breakage. His
+  "Why isn't HTTPS everywhere yet?" document [[TRANSITIONAL]] explains the
+  situation quite well, and proposes one approach to solving the problem. This
+  document proposes another, which is smaller but simpler.
+
+  Today, the mechanism outlined in [[UPGRADE-INSECURE-REQUESTS]] allows a site
+  to make assertions on behalf of the resources it loads that they ought to be
+  requested over secure transport. If we provide a similar mechanism to those
+  resources' owners, then that new mechanism could be used to break deadlocks by
+  allowing Origin B to upgrade to HTTPS, and assert that requests from Origin A
+  should be upgraded rather than blocked as mixed content. [[RFC6797]]
+  introduced the `Strict-Transport-Security` header, which looks like it could
+  be that mechanism.
+
+  HSTS, however, is currently checked after mixed content blocking has already
+  happened. This is due to the fundamental property that HSTS takes effect only
+  after a user's agent has requested a resource from a host that sends the
+  header. The effect, therefore, is therefore determined by the vagaries of a
+  particular user's browsing history. If she visits Origin B before Origin A,
+  then Origin A's resources could be upgraded without issue. If she visits
+  Origin A first, then those resources won't be upgraded, and the site will
+  break in some interesting way.
+
+  Origin A's developer, of course, is overwhelmingly likely to have visited
+  Origin B, given the dependencies. This means that they are both extremely
+  unlikely to experience the failure, and extremely likely to fall into the
+  "Works on my machine!" trap when dealing with user's bug reports. Users
+  would be sad, developers would be confused, and the world would collapse into
+  an unfortunately indeterminate pile of partially broken sites.
+
+  It doesn't have to be this way, however. This document proposes updates to
+  [[FETCH]], [[MIXED-CONTENT]], and [[RFC6797]] which introduce the concept of
+  an HSTS priming request. This request will attempt to validate an insecure
+  resource's host's HSTS policy before blocking it as mixed content, therefore
+  allowing any relevant upgrade from HTTP to HTTPS to be made in a deterministic
+  way for all users.
+
+  This is not a recommendation-track document, it simply intends to explain the
+  notion of HSTS priming, and gather up relevant changes in a single place for
+  discussion. The normative changes will happen in the relevant documents.
+
+  <h3 id="examples">Example</h3>
+
+  Origin A contains the following HTML:
+
+  <pre>
+    &lt;script src="http://origin-b/widget.js"&gt;&lt;/script&gt;
+  </pre>
+
+  Before blocking this insecure request as mixed content, the user agent
+  performs an HSTS priming request to the root of the resource's host, as
+  follows:
+
+  <pre>
+    HEAD / HTTP/1.1
+    Host: origin-b
+    ...
+  </pre>
+
+  Origin B sends back a response which triggers HSTS for the host:
+
+  <pre>
+    HTTP/1.1 200 OK
+    ...
+    Strict-Transport-Security: max-age=10886400; includeSubDomains; preload
+  </pre>
+    
+  The user agent can then safely upgrade the initial request from HTTP to HTTPS,
+  rather than blocking it as mixed content.
+
+  <h3 id="goals">Goals</h3>
+
+  HSTS priming has the overarching goal of removing mixed content as a barrier
+  to securing the internet. This breaks down into two concrete objectives:
+
+  1.  Convert the `Strict-Transport-Security` assertion from a negative one
+      ("This host is only available via secure transport") to a positive one
+      ("Any resource on this host addressed by an insecure scheme is available
+      via secure transport. Please grab it from there instead.").
+
+  2.  Teach user agents how to verify this new HSTS assertion early enough in a
+      request's lifecycle to avoid being blocked as mixed content.
+</section>
+
+<section>
+  <h2 id="modifications">Proposed Modifications</h2>
+
+  <h3 id="modifications-fetch">Fetch</h3>
+
+  1.  Introduce an <dfn>HSTS Priming Request</dfn> that:
+
+      1.  Points at the root of a host (e.g. `https://example.com/`)
+      2.  Uses the `HEAD` method (`OPTIONS`?)
+      3.  Does not include credentials
+      4.  Does not follow redirects
+      5.  Has a referrer policy of `none`
+      6.  Has no `client`
+      7.  Includes a header named `Upgrade-Insecure-Requests` with a value of
+          `1` if the user agent supports the mechanism spelled out in
+          [[UPGRADE-INSECURE-REQUESTS]].
+
+  2.  Refactor a request's lifecycle to ensure that the priming request is made
+      at a reasonable location, and that the upgrade happens before mixed
+      content checks.
+
+  <h3 id="modifications-mixed-content">Mixed Content</h3>
+
+  1.  Explain the nature of the relationship to HSTS.
+
+  <h3 id="modifications-hsts">RFC 6797</h3>
+
+  1.  Explain the nature of the new assertion that's being made, and its
+      implications.
+
+  2.  Integrate the spec with Fetch.
+
+  3.  Expand the "Noting an HSTS Host" section to include a negative cache for
+      failed priming requests.
+
+  ISSUE: Lots more specifics everywhere.
+</section>
+
+<section>
+  <h2 id="open-questions">Open Questions</h2>
+
+  1.  Would it be valuable enough to do this for navigational requests as well?
+      That would have the impact of making the initial window for attack
+      marginally smaller (e.g. the attacker would have to actively block
+      connections over 443, rather than executing an ssl stripping attack), but
+      it's not clear that there's much value in the additional complexity.
+</section>
+
+<section>
+  <h2 id="security-considerations">Security Considerations</h2>
+
+  HSTS priming makes it more likely that developers can upgrade their sites from
+  HTTP to HTTPS, as discussed in the introduction.
+
+  It has the nice side-effect of making it possible for CDNs and widget
+  providers to increase the security of the web in one fell swoop, which
+  increases the value of the `Strict-Transport-Security` header significantly.
+</section>
+<section>
+  <h2 id="privacy-considerations">Privacy Considerations</h2>
+
+  <h3 id="divergent-hosts">Leakage via Divergent Hosts</h3>
+
+  As little sense as it may make, some hosts do serve different content via
+  HTTPS than they serve via HTTP (`forbes.com` is the canonical example). HSTS
+  priming has the potential of leaking information about insecure resource
+  requests to the secure variant of the requests' host. We mitigate this risk
+  by stripping out interesting information from the priming request. It does
+  not contain referrer information (as we set the referrer policy to `none`), it
+  contains no credential information, and it doesn't contain the URL of the
+  resource being requested (as we target the root of the secure origin).
+
+  <h3 id="history">History Leakage</h3>
+
+  The HSTS state of a host leaks some information about a user's browsing
+  history. Likewise, if the user agent caches failed HSTS priming requests,
+  those failures leak information. User agents SHOULD give users the ability
+  to clear these caches, and should expire them in a reasonable amount of time.
+</section>
+
+<!--
+   ███     ██████  ██    ██ ██    ██  ███████  ██      ██ ██       ████████ ████████   ██████   ████████ ██     ██ ████████ ██    ██ ████████  ██████
+  ██ ██   ██    ██ ██   ██  ███   ██ ██     ██ ██  ██  ██ ██       ██       ██     ██ ██    ██  ██       ███   ███ ██       ███   ██    ██    ██    ██
+ ██   ██  ██       ██  ██   ████  ██ ██     ██ ██  ██  ██ ██       ██       ██     ██ ██        ██       ████ ████ ██       ████  ██    ██    ██
+██     ██ ██       █████    ██ ██ ██ ██     ██ ██  ██  ██ ██       ██████   ██     ██ ██   ████ ██████   ██ ███ ██ ██████   ██ ██ ██    ██     ██████
+█████████ ██       ██  ██   ██  ████ ██     ██ ██  ██  ██ ██       ██       ██     ██ ██    ██  ██       ██     ██ ██       ██  ████    ██          ██
+██     ██ ██    ██ ██   ██  ██   ███ ██     ██ ██  ██  ██ ██       ██       ██     ██ ██    ██  ██       ██     ██ ██       ██   ███    ██    ██    ██
+██     ██  ██████  ██    ██ ██    ██  ███████   ███  ███  ████████ ████████ ████████   ██████   ████████ ██     ██ ████████ ██    ██    ██     ██████
+-->
+<section>
+  <h2 id="acknowledgements">Acknowledgements</h2>
+
+  Richard Barnes <a href="https://lists.w3.org/Archives/Public/public-webappsec/2015Aug/0095.html">proposed this treatment</a>
+  in a thread that included very helpful comments from Eric Mill, Brad Hill,
+  Mark Nottingham, Brian Smith, Tanvi Vyas, Martin Thomson, and Anne van
+  Kesteren.
+</section>
