@@ -1137,7 +1137,7 @@ Host: origin-b
     <p>Origin B sends back a response which triggers HSTS for the host:</p>
 <pre>HTTP/1.1 200 OK
 ...
-Strict-Transport-Security: max-age=10886400; includeSubDomains; preload
+Strict-Transport-Security: max-age=10886400; includeSubDomains
 </pre>
     <p>The user agent can then safely upgrade the initial request from HTTP to HTTPS,
   rather than blocking it as mixed content.</p>
@@ -1166,7 +1166,7 @@ Strict-Transport-Security: max-age=10886400; includeSubDomains; preload
       <ol>
        <li data-md="">
         <p>If <var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-client">client</a> <a data-link-type="dfn" href="https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object">prohibits mixed security
-  contexts</a>, and <var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-current-url">current url</a>’s <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-scheme">scheme</a> is "<code>http</code>" or "<code>ws</code>", and its <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-host">host</a> does not <a data-link-type="dfn" href="#matches-the-hsts-cache">match the HSTS cache</a>, then
+  contexts</a>, and <var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-current-url">current url</a>’s <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-scheme">scheme</a> is "<code>http</code>" or "<code>ws</code>", and it isn’t a <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#navigation-request">navigation request</a>, and its <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-host">host</a> does not <a data-link-type="dfn" href="#matches-the-hsts-cache">match the HSTS cache</a>, then
   perform an <a data-link-type="dfn" href="#hsts-priming-request">HSTS priming request</a> for <var>request</var>.</p>
       </ol>
      <li data-md="">
@@ -1178,6 +1178,11 @@ Strict-Transport-Security: max-age=10886400; includeSubDomains; preload
       <p class="note" role="note">Note: Maybe use the newly defined <a data-link-type="dfn" href="#hsts-cache">HSTS cache</a> for the upgrade
   instead of deferring to the RFC.</p>
     </ol>
+    <p class="note" role="note">Note: If a user agent implements prerendering or prefetching, it might be a
+  wonderful idea to perform a priming request for any insecure navigation that
+  such a function proposes. The performance impact would be (mostly) hidden by
+  the background nature of such a request, and the security impacts would be
+  interesting indeed.</p>
     <h4 class="heading settled" data-level="2.1.2" id="modifications-fetch-network"><span class="secno">2.1.2. </span><span class="content">HTTP-network Fetch modifications</span><a class="self-link" href="#modifications-fetch-network"></a></h4>
     <p>Modify <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#http-network-fetch">HTTP-network Fetch</a> as follows:</p>
     <ol>
@@ -1420,6 +1425,7 @@ Strict-Transport-Security: max-age=10886400; includeSubDomains; preload
      <li><a href="https://fetch.spec.whatwg.org#http-network-or-cache-fetch">http-network-or-cache fetch</a>
      <li><a href="https://fetch.spec.whatwg.org#concept-request-initiator">initiator</a>
      <li><a href="https://fetch.spec.whatwg.org#concept-request-method">method</a>
+     <li><a href="https://fetch.spec.whatwg.org#navigation-request">navigation request</a>
      <li><a href="https://fetch.spec.whatwg.org#concept-request-redirect-mode">redirect mode</a>
      <li><a href="https://fetch.spec.whatwg.org#concept-request-referrer-policy">referrer policy</a>
      <li><a href="https://fetch.spec.whatwg.org#concept-request">request</a>

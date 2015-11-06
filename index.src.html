@@ -20,6 +20,7 @@ spec: FETCH; urlPrefix: https://fetch.spec.whatwg.org
     text: request; url: concept-request
     text: HTTP-network fetch
     text: HTTP-network-or-cache fetch
+    text: navigation request
     for: request
       text: client; url: concept-request-client
       text: credentials mode; url:concept-request-credentials-mode
@@ -175,8 +176,8 @@ spec: RFC6797; urlPrefix: https://tools.ietf.org/html/rfc6797
 
       4.  If |request|'s <a for="request">client</a> <a>prohibits mixed security
           contexts</a>, and |request|'s <a for="request">current url</a>'s
-          <a for="url">scheme</a> is "`http`" or "`ws`", and its
-          <a for="url">host</a> does not
+          <a for="url">scheme</a> is "`http`" or "`ws`", and it isn't a
+          <a>navigation request</a>, and its <a for="url">host</a> does not
           <a lt="matches the HSTS cache">match the HSTS cache</a>, then
           perform an <a>HSTS priming request</a> for |request|.
 
@@ -189,6 +190,12 @@ spec: RFC6797; urlPrefix: https://tools.ietf.org/html/rfc6797
 
       Note: Maybe use the newly defined <a>HSTS cache</a> for the upgrade
       instead of deferring to the RFC.
+
+  Note: If a user agent implements prerendering or prefetching, it might be a
+  wonderful idea to perform a priming request for any insecure navigation that
+  such a function proposes. The performance impact would be (mostly) hidden by
+  the background nature of such a request, and the security impacts would be
+  interesting indeed.
 
   <h4 id="modifications-fetch-network">HTTP-network Fetch modifications</h4>
 
