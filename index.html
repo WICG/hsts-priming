@@ -1001,7 +1001,7 @@
   <div class="head">
    <p data-fill-with="logo"></p>
    <h1 class="p-name no-ref" id="title">HSTS Priming</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">A Collection of Interesting Ideas, <time class="dt-updated" datetime="2015-11-05">5 November 2015</time></span></h2>
+   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">A Collection of Interesting Ideas, <time class="dt-updated" datetime="2015-11-06">6 November 2015</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -1014,7 +1014,7 @@
    <div data-fill-with="warning"></div>
    <p class="copyright" data-fill-with="copyright"><a href="http://creativecommons.org/publicdomain/zero/1.0/" rel="license"><img alt="CC0" src="https://licensebuttons.net/p/zero/1.0/80x15.png"></a> To the extent possible under law, the editors have waived all copyright
 and related or neighboring rights to this work.
-In addition, as of 5 November 2015,
+In addition, as of 6 November 2015,
 the editors have made this specification available under the <a href="http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0" rel="license">Open Web Foundation Agreement Version 1.0</a>,
 which is available at http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
 Parts of this work may be from another specification document.  If so, those parts are instead covered by the license of that specification document. </p>
@@ -1040,7 +1040,15 @@ migrations from HTTP to HTTPS.</p>
     <li>
      <a href="#modifications"><span class="secno">2</span> <span class="content">Proposed Modifications</span></a>
      <ul class="toc">
-      <li><a href="#modifications-fetch"><span class="secno">2.1</span> <span class="content">Fetch</span></a>
+      <li>
+       <a href="#modifications-fetch"><span class="secno">2.1</span> <span class="content">Fetch</span></a>
+       <ul class="toc">
+        <li><a href="#modifications-fetch-main"><span class="secno">2.1.1</span> <span class="content">Main Fetch Modifications</span></a>
+        <li><a href="#modifications-fetch-network"><span class="secno">2.1.2</span> <span class="content">HTTP-network Fetch modifications</span></a>
+        <li><a href="#modifications-fetch-priming"><span class="secno">2.1.3</span> <span class="content">HSTS Priming Requests</span></a>
+        <li><a href="#modifications-fetch-hsts-cache"><span class="secno">2.1.4</span> <span class="content">HSTS Cache</span></a>
+        <li><a href="#modifications-fetch-hsts-cache-matching"><span class="secno">2.1.5</span> <span class="content"> Does <var>request</var> match the HSTS cache? </span></a>
+       </ul>
       <li><a href="#modifications-mixed-content"><span class="secno">2.2</span> <span class="content">Mixed Content</span></a>
       <li><a href="#modifications-hsts"><span class="secno">2.3</span> <span class="content">RFC 6797</span></a>
      </ul>
@@ -1058,6 +1066,7 @@ migrations from HTTP to HTTPS.</p>
      <a href="#index"><span class="secno"></span> <span class="content">Index</span></a>
      <ul class="toc">
       <li><a href="#index-defined-here"><span class="secno"></span> <span class="content">Terms defined by this specification</span></a>
+      <li><a href="#index-defined-elsewhere"><span class="secno"></span> <span class="content">Terms defined by reference</span></a>
      </ul>
     <li>
      <a href="#references"><span class="secno"></span> <span class="content">References</span></a>
@@ -1149,29 +1158,167 @@ Strict-Transport-Security: max-age=10886400; includeSubDomains; preload
    <section>
     <h2 class="heading settled" data-level="2" id="modifications"><span class="secno">2. </span><span class="content">Proposed Modifications</span><a class="self-link" href="#modifications"></a></h2>
     <h3 class="heading settled" data-level="2.1" id="modifications-fetch"><span class="secno">2.1. </span><span class="content">Fetch</span><a class="self-link" href="#modifications-fetch"></a></h3>
+    <h4 class="heading settled" data-level="2.1.1" id="modifications-fetch-main"><span class="secno">2.1.1. </span><span class="content">Main Fetch Modifications</span><a class="self-link" href="#modifications-fetch-main"></a></h4>
     <ol>
      <li data-md="">
-      <p>Introduce an <dfn data-dfn-type="dfn" data-noexport="" id="hsts-priming-request">HSTS Priming Request<a class="self-link" href="#hsts-priming-request"></a></dfn> that:</p>
+      <p>After the current step 3 (which deals with <code>Upgrade-Insecure-Requests</code>),
+  add the following steps:</p>
       <ol>
        <li data-md="">
-        <p>Points at the root of a host (e.g. <code>https://example.com/</code>)</p>
-       <li data-md="">
-        <p>Uses the <code>HEAD</code> method (<code>OPTIONS</code>?)</p>
-       <li data-md="">
-        <p>Does not include credentials</p>
-       <li data-md="">
-        <p>Does not follow redirects</p>
-       <li data-md="">
-        <p>Has a referrer policy of <code>none</code></p>
-       <li data-md="">
-        <p>Has no <code>client</code></p>
-       <li data-md="">
-        <p>Includes a header named <code>Upgrade-Insecure-Requests</code> with a value of <code>1</code> if the user agent supports the mechanism spelled out in <a data-link-type="biblio" href="#biblio-upgrade-insecure-requests">[UPGRADE-INSECURE-REQUESTS]</a>.</p>
+        <p>If <var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-client">client</a> <a data-link-type="dfn" href="https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object">prohibits mixed security
+  contexts</a>, and <var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-current-url">current url</a>’s <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-scheme">scheme</a> is "<code>http</code>" or "<code>ws</code>", and its <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-host">host</a> does not <a data-link-type="dfn" href="#matches-the-hsts-cache">match the HSTS cache</a>, then
+  perform an <a data-link-type="dfn" href="#hsts-priming-request">HSTS priming request</a> for <var>request</var>.</p>
       </ol>
      <li data-md="">
-      <p>Refactor a request’s lifecycle to ensure that the priming request is made
-  at a reasonable location, and that the upgrade happens before mixed
-  content checks.</p>
+      <p>Move the current step 6 (which deals with HSTS) before the current step 4
+  (which deals with CSP and mixed content).</p>
+      <p class="note" role="note">Note: This isn’t entirely accurate, as we probably want reporting to
+  happen before the upgrade (that is, before the current step 3). That’s
+  a bug in the existing algorithm that I need to take care of.</p>
+      <p class="note" role="note">Note: Maybe use the newly defined <a data-link-type="dfn" href="#hsts-cache">HSTS cache</a> for the upgrade
+  instead of deferring to the RFC.</p>
+    </ol>
+    <h4 class="heading settled" data-level="2.1.2" id="modifications-fetch-network"><span class="secno">2.1.2. </span><span class="content">HTTP-network Fetch modifications</span><a class="self-link" href="#modifications-fetch-network"></a></h4>
+    <p>Modify <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#http-network-fetch">HTTP-network Fetch</a> as follows:</p>
+    <ol>
+     <li data-md="">
+      <p>After the current step 9 (which processes the <code>Set-Cookie</code> header),
+  execute the following steps:</p>
+      <ol>
+       <li data-md="">
+        <p>If <var>response</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-header-list">header list</a> contains one or more headers
+  named <code>Strict-Transport-Security</code>, then add an entry to the <a data-link-type="dfn" href="#hsts-cache">HSTS
+  cache</a> with the following properties:</p>
+        <dl>
+         <dt data-md="">
+          <p><a data-link-type="dfn" href="#host">host</a></p>
+         <dd data-md="">
+          <p><var>response</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-url">url</a>’s <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-host">host</a></p>
+         <dt data-md="">
+          <p><a data-link-type="dfn" href="#expiration">expiration</a></p>
+         <dd data-md="">
+          <p class="issue" id="issue-ad95c933"><a class="self-link" href="#issue-ad95c933"></a> Parse the header.</p>
+         <dt data-md="">
+          <p><a data-link-type="dfn" href="#subdomains">subdomains</a></p>
+         <dd data-md="">
+          <p class="issue" id="issue-ad95c9330"><a class="self-link" href="#issue-ad95c9330"></a> Parse the header.</p>
+         <dt data-md="">
+          <p><a data-link-type="dfn" href="#status">status</a></p>
+         <dd data-md="">
+          <p>"<code>upgrade</code>"</p>
+        </dl>
+      </ol>
+    </ol>
+    <h4 class="heading settled" data-level="2.1.3" id="modifications-fetch-priming"><span class="secno">2.1.3. </span><span class="content">HSTS Priming Requests</span><a class="self-link" href="#modifications-fetch-priming"></a></h4>
+    <p>To perform an <dfn data-dfn-type="dfn" data-noexport="" id="hsts-priming-request">HSTS Priming Request<a class="self-link" href="#hsts-priming-request"></a></dfn> for <var>request</var>, run these steps:</p>
+    <ol>
+     <li data-md="">
+      <p>If <var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-current-url">current url</a>’s <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-scheme">scheme</a> is not "<code>http</code>" or "<code>ws</code>", abort these steps.</p>
+      <p class="note" role="note">Note: I’m assuming that Web Sockets are going to be folded into Fetch at
+  some point?</p>
+     <li data-md="">
+      <p>Let <var>primer</var> be a new <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request">request</a> whose properties are set as follows:</p>
+      <dl>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-method">method</a></p>
+       <dd data-md="">
+        <p>"<code>HEAD</code>"</p>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-url">url</a></p>
+       <dd data-md="">
+        <p>A new <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-url">URL</a> whose scheme is "<code>https</code>", <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-host">host</a> is <var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-current-url">current url</a>’s <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-host">host</a>,
+  and <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-port">port</a> is <var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-current-url">current
+  url</a>’s <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-port">port</a></p>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-initiator">initiator</a></p>
+       <dd data-md="">
+        <p><var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-initiator">initiator</a></p>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-type">type</a></p>
+       <dd data-md="">
+        <p><var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-type">type</a></p>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-destination">destination</a></p>
+       <dd data-md="">
+        <p><var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-destination">destination</a></p>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-credentials-mode">credentials mode</a></p>
+       <dd data-md="">
+        <p><var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-credentials-mode">credentials mode</a></p>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-redirect-mode">redirect mode</a></p>
+       <dd data-md="">
+        <p>"<code>manual</code>"</p>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-client">client</a></p>
+       <dt data-md="">
+        <p><code>null</code></p>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-referrer-policy">referrer policy</a></p>
+       <dd data-md="">
+        <p>"<code>no-referrer</code>"</p>
+      </dl>
+     <li data-md="">
+      <p><a data-link-type="dfn" href="https://dom.spec.whatwg.org/#concept-node-append">Append</a> a header named "<code>Upgrade-Insecure-Requests</code>" with a value of
+  "<code>1</code>" to <var>primer</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-header-list">header list</a>.</p>
+     <li data-md="">
+      <p>Let <var>response</var> be the result of performing an <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#http-network-or-cache-fetch">HTTP-network-or-cache
+  fetch</a> using <var>primer</var>.</p>
+     <li data-md="">
+      <p>If <var>response</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-header-list">header list</a> does not contain one or more headers
+  named <code>Strict-Transport-Security</code>, then add an entry to the <a data-link-type="dfn" href="#hsts-cache">HSTS
+  cache</a> with the following properties:</p>
+      <dl>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="#host">host</a></p>
+       <dd data-md="">
+        <p><var>primer</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-url">url</a>’s <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-host">host</a></p>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="#expiration">expiration</a></p>
+       <dd data-md="">
+        <p>A reasonable expiration. Perhaps 24 hours?</p>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="#subdomains">subdomains</a></p>
+       <dd data-md="">
+        <p>"<code>exclude</code>"</p>
+       <dt data-md="">
+        <p><a data-link-type="dfn" href="#status">status</a></p>
+       <dd data-md="">
+        <p>"<code>do not upgrade</code>"</p>
+      </dl>
+    </ol>
+    <h4 class="heading settled" data-level="2.1.4" id="modifications-fetch-hsts-cache"><span class="secno">2.1.4. </span><span class="content">HSTS Cache</span><a class="self-link" href="#modifications-fetch-hsts-cache"></a></h4>
+    <p>An <dfn data-dfn-type="dfn" data-noexport="" id="hsts-cache">HSTS cache<a class="self-link" href="#hsts-cache"></a></dfn> consists of a collection of <dfn data-dfn-type="dfn" data-noexport="" id="hsts-cache-entry">HSTS cache
+  entry<a class="self-link" href="#hsts-cache-entry"></a></dfn> objects, each with the following properties:</p>
+    <dl>
+     <dt data-md="">
+      <p><dfn data-dfn-for="HSTS cache entry" data-dfn-type="dfn" data-noexport="" id="host">host<a class="self-link" href="#host"></a></dfn></p>
+     <dd data-md="">
+      <p>A <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-host">host</a></p>
+     <dt data-md="">
+      <p><dfn data-dfn-for="HSTS cache entry" data-dfn-type="dfn" data-noexport="" id="expiration">expiration<a class="self-link" href="#expiration"></a></dfn></p>
+     <dd data-md="">
+      <p>A timestamp, after which this entry is no longer valid</p>
+     <dt data-md="">
+      <p><dfn data-dfn-for="HSTS cache entry" data-dfn-type="dfn" data-noexport="" id="subdomains">subdomains<a class="self-link" href="#subdomains"></a></dfn></p>
+     <dd data-md="">
+      <p>"<code>include</code>" or "<code>exclude</code>"</p>
+     <dt data-md="">
+      <p><dfn data-dfn-for="HSTS cache entry" data-dfn-type="dfn" data-noexport="" id="status">status<a class="self-link" href="#status"></a></dfn></p>
+     <dd data-md="">
+      <p>"<code>upgrade</code>" or "<code>do not upgrade</code>"</p>
+    </dl>
+    <h4 class="heading settled" data-algorithm="Does request match the HSTS cache?" data-level="2.1.5" id="modifications-fetch-hsts-cache-matching"><span class="secno">2.1.5. </span><span class="content"> Does <var>request</var> match the HSTS cache? </span><a class="self-link" href="#modifications-fetch-hsts-cache-matching"></a></h4>
+     A <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request">request</a> (<var>request</var>) <dfn data-dfn-type="dfn" data-noexport="" id="matches-the-hsts-cache">matches the HSTS cache<a class="self-link" href="#matches-the-hsts-cache"></a></dfn> if there exists
+  an <a data-link-type="dfn" href="#hsts-cache-entry">HSTS cache entry</a> <var>entry</var> in the user agent’s <a data-link-type="dfn" href="#hsts-cache">HSTS cache</a> such
+  that: 
+    <ol>
+     <li data-md="">
+      <p>The current time is not after <var>entry</var>'s <a data-link-type="dfn" href="#expiration">expiration</a></p>
+     <li data-md="">
+      <p><var>entry</var>'s <a data-link-type="dfn" href="#host">host</a> is a <a data-link-type="dfn" href="https://tools.ietf.org/html/rfc6797#section-8.2">concurrent match</a> for <var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-current-url">current url</a>’s <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-host">host</a></p>
+      <p>or</p>
+      <p><var>entry</var>'s <a data-link-type="dfn" href="#subdomains">subdomains</a> is "<code>include</code>", and <var>entry</var>'s <a data-link-type="dfn" href="#host">host</a> is a <a data-link-type="dfn" href="https://tools.ietf.org/html/rfc6797#section-8.2">superdomain match</a> for <var>request</var>'s <a data-link-type="dfn" href="https://fetch.spec.whatwg.org#concept-request-current-url">current url</a>’s <a data-link-type="dfn" href="https://url.spec.whatwg.org/#concept-url-host">host</a></p>
     </ol>
     <h3 class="heading settled" data-level="2.2" id="modifications-mixed-content"><span class="secno">2.2. </span><span class="content">Mixed Content</span><a class="self-link" href="#modifications-mixed-content"></a></h3>
     <ol>
@@ -1185,9 +1332,6 @@ Strict-Transport-Security: max-age=10886400; includeSubDomains; preload
   implications.</p>
      <li data-md="">
       <p>Integrate the spec with Fetch.</p>
-     <li data-md="">
-      <p>Expand the "Noting an HSTS Host" section to include a negative cache for
-  failed priming requests.</p>
     </ol>
     <p class="issue" id="issue-1ddc8e85"><a class="self-link" href="#issue-1ddc8e85"></a> Lots more specifics everywhere.</p>
    </section>
@@ -1252,29 +1396,89 @@ Strict-Transport-Security: max-age=10886400; includeSubDomains; preload
   <h2 class="no-num heading settled" id="index"><span class="content">Index</span><a class="self-link" href="#index"></a></h2>
   <h3 class="no-num heading settled" id="index-defined-here"><span class="content">Terms defined by this specification</span><a class="self-link" href="#index-defined-here"></a></h3>
   <ul class="indexlist">
-   <li><a href="#hsts-priming-request">HSTS Priming Request</a><span>, in §2.1</span>
+   <li><a href="#expiration">expiration</a><span>, in §2.1.4</span>
+   <li><a href="#host">host</a><span>, in §2.1.4</span>
+   <li><a href="#hsts-cache">HSTS cache</a><span>, in §2.1.4</span>
+   <li><a href="#hsts-cache-entry">HSTS cache
+  entry</a><span>, in §2.1.4</span>
+   <li><a href="#hsts-priming-request">HSTS Priming Request</a><span>, in §2.1.3</span>
+   <li><a href="#matches-the-hsts-cache">matches the HSTS cache</a><span>, in §2.1.5</span>
+   <li><a href="#status">status</a><span>, in §2.1.4</span>
+   <li><a href="#subdomains">subdomains</a><span>, in §2.1.4</span>
+  </ul>
+  <h3 class="no-num heading settled" id="index-defined-elsewhere"><span class="content">Terms defined by reference</span><a class="self-link" href="#index-defined-elsewhere"></a></h3>
+  <ul class="indexlist">
+   <li>
+    <a data-link-type="biblio" href="#biblio-fetch">[FETCH]</a> defines the following terms:
+    <ul>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request-client">client</a>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request-credentials-mode">credentials mode</a>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request-current-url">current url</a>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request-destination">destination</a>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request-header-list">header list</a>
+     <li><a href="https://fetch.spec.whatwg.org#http-network-fetch">http-network fetch</a>
+     <li><a href="https://fetch.spec.whatwg.org#http-network-or-cache-fetch">http-network-or-cache fetch</a>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request-initiator">initiator</a>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request-method">method</a>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request-redirect-mode">redirect mode</a>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request-referrer-policy">referrer policy</a>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request">request</a>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request-type">type</a>
+     <li><a href="https://fetch.spec.whatwg.org#concept-request-url">url</a>
+    </ul>
+   <li>
+    <a data-link-type="biblio" href="#biblio-mix">[MIX]</a> defines the following terms:
+    <ul>
+     <li><a href="https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object">prohibits mixed security contexts</a>
+    </ul>
+   <li>
+    <a data-link-type="biblio" href="#biblio-rfc6797">[rfc6797]</a> defines the following terms:
+    <ul>
+     <li><a href="https://tools.ietf.org/html/rfc6797#section-8.2">concurrent match</a>
+     <li><a href="https://tools.ietf.org/html/rfc6797#section-8.2">superdomain match</a>
+    </ul>
+   <li>
+    <a data-link-type="biblio" href="#biblio-dom-ls">[dom-ls]</a> defines the following terms:
+    <ul>
+     <li><a href="https://dom.spec.whatwg.org/#concept-node-append">append</a>
+    </ul>
+   <li>
+    <a data-link-type="biblio" href="#biblio-url">[url]</a> defines the following terms:
+    <ul>
+     <li><a href="https://url.spec.whatwg.org/#concept-url-host">host</a>
+     <li><a href="https://url.spec.whatwg.org/#concept-url-port">port</a>
+     <li><a href="https://url.spec.whatwg.org/#concept-url-scheme">scheme</a>
+    </ul>
   </ul>
   <h2 class="no-num heading settled" id="references"><span class="content">References</span><a class="self-link" href="#references"></a></h2>
   <h3 class="no-num heading settled" id="normative"><span class="content">Normative References</span><a class="self-link" href="#normative"></a></h3>
   <dl>
+   <dt id="biblio-fetch"><a class="self-link" href="#biblio-fetch"></a>[FETCH]
+   <dd>Anne van Kesteren. <a href="https://fetch.spec.whatwg.org/">Fetch Standard</a>. Living Standard. URL: <a href="https://fetch.spec.whatwg.org/">https://fetch.spec.whatwg.org/</a>
+   <dt id="biblio-mix"><a class="self-link" href="#biblio-mix"></a>[MIX]
+   <dd>Mike West. <a href="http://www.w3.org/TR/mixed-content/">Mixed Content</a>. 8 October 2015. CR. URL: <a href="http://www.w3.org/TR/mixed-content/">http://www.w3.org/TR/mixed-content/</a>
+   <dt id="biblio-dom-ls"><a class="self-link" href="#biblio-dom-ls"></a>[DOM-LS]
+   <dd>Document Object Model URL: <a href="https://dom.spec.whatwg.org/">https://dom.spec.whatwg.org/</a>
    <dt id="biblio-rfc2119"><a class="self-link" href="#biblio-rfc2119"></a>[RFC2119]
    <dd>S. Bradner. <a href="https://tools.ietf.org/html/rfc2119">Key words for use in RFCs to Indicate Requirement Levels</a>. March 1997. Best Current Practice. URL: <a href="https://tools.ietf.org/html/rfc2119">https://tools.ietf.org/html/rfc2119</a>
+   <dt id="biblio-rfc6797"><a class="self-link" href="#biblio-rfc6797"></a>[RFC6797]
+   <dd>J. Hodges; C. Jackson; A. Barth. <a href="https://tools.ietf.org/html/rfc6797">HTTP Strict Transport Security (HSTS)</a>. November 2012. Proposed Standard. URL: <a href="https://tools.ietf.org/html/rfc6797">https://tools.ietf.org/html/rfc6797</a>
+   <dt id="biblio-url"><a class="self-link" href="#biblio-url"></a>[URL]
+   <dd>Anne van Kesteren; Sam Ruby. <a href="http://www.w3.org/TR/url-1/">URL</a>. 9 December 2014. WD. URL: <a href="http://www.w3.org/TR/url-1/">http://www.w3.org/TR/url-1/</a>
   </dl>
   <h3 class="no-num heading settled" id="informative"><span class="content">Informative References</span><a class="self-link" href="#informative"></a></h3>
   <dl>
-   <dt id="biblio-fetch"><a class="self-link" href="#biblio-fetch"></a>[FETCH]
-   <dd>Anne van Kesteren. <a href="https://fetch.spec.whatwg.org/">Fetch Standard</a>. Living Standard. URL: <a href="https://fetch.spec.whatwg.org/">https://fetch.spec.whatwg.org/</a>
    <dt id="biblio-transitional"><a class="self-link" href="#biblio-transitional"></a>[TRANSITIONAL]
    <dd>Brad Hill. <a href="http://webappsec-test.info/~bhill2/DifferentTakeOnOE.html">Why isn't HTTPS everywhere yet?</a>. URL: <a href="http://webappsec-test.info/~bhill2/DifferentTakeOnOE.html">http://webappsec-test.info/~bhill2/DifferentTakeOnOE.html</a>
    <dt id="biblio-mixed-content"><a class="self-link" href="#biblio-mixed-content"></a>[MIXED-CONTENT]
    <dd>Mike West. <a href="http://www.w3.org/TR/mixed-content/">Mixed Content</a>. 8 October 2015. CR. URL: <a href="http://www.w3.org/TR/mixed-content/">http://www.w3.org/TR/mixed-content/</a>
-   <dt id="biblio-rfc6797"><a class="self-link" href="#biblio-rfc6797"></a>[RFC6797]
-   <dd>J. Hodges; C. Jackson; A. Barth. <a href="https://tools.ietf.org/html/rfc6797">HTTP Strict Transport Security (HSTS)</a>. November 2012. Proposed Standard. URL: <a href="https://tools.ietf.org/html/rfc6797">https://tools.ietf.org/html/rfc6797</a>
    <dt id="biblio-upgrade-insecure-requests"><a class="self-link" href="#biblio-upgrade-insecure-requests"></a>[UPGRADE-INSECURE-REQUESTS]
    <dd>Mike West. <a href="http://www.w3.org/TR/upgrade-insecure-requests/">Upgrade Insecure Requests</a>. 8 October 2015. CR. URL: <a href="http://www.w3.org/TR/upgrade-insecure-requests/">http://www.w3.org/TR/upgrade-insecure-requests/</a>
   </dl>
   <h2 class="no-num heading settled" id="issues-index"><span class="content">Issues Index</span><a class="self-link" href="#issues-index"></a></h2>
   <div style="counter-reset:issue">
+   <div class="issue"> Parse the header.<a href="#issue-ad95c933"> ↵ </a></div>
+   <div class="issue"> Parse the header.<a href="#issue-ad95c9330"> ↵ </a></div>
    <div class="issue"> Lots more specifics everywhere.<a href="#issue-1ddc8e85"> ↵ </a></div>
   </div>
  </body>

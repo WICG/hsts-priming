@@ -15,79 +15,37 @@ Markup Shorthands: markdown on
 Boilerplate: omit conformance, omit feedback-header
 </pre>
 <pre class="anchors">
-urlPrefix: http://www.w3.org/TR/dom/; spec: DOM
-  type: interface
-    text: Document; url: interface-document
-    text: Window; url: interface-window
-urlPrefix: https://fetch.spec.whatwg.org/; spec: FETCH
-  type: interface
-    text: Response
+spec: FETCH; urlPrefix: https://fetch.spec.whatwg.org
   type: dfn
-    text: basic fetch
-urlPrefix: http://www.w3.org/TR/geolocation-API/; spec: GEOLOCATION-API
-  type: method
-    text: getCurrentPosition(); url: get-current-position
-    text: watchPosition(); url: watch-position
-urlPrefix: http://www.w3.org/TR/html5/; spec: HTML5
+    text: request; url: concept-request
+    text: HTTP-network fetch
+    text: HTTP-network-or-cache fetch
+    for: request
+      text: client; url: concept-request-client
+      text: credentials mode; url:concept-request-credentials-mode
+      text: current url; url: concept-request-current-url
+      text: destination;  url: concept-request-destination
+      text: header list; url: concept-request-header-list
+      text: initiator; url: concept-request-initiator
+      text: method; url:concept-request-method
+      text: origin; url:concept-request-origin
+      text: redirect mode; url:concept-request-redirect-mode
+      text: referrer policy; url:concept-request-referrer-policy
+      text: type; url: concept-request-type
+      text: url; url: concept-request-url
+
+spec: URL; urlPrefix: https://url.spec.whatwg.org
   type: dfn
-    urlPrefix: embedded-content-0.html
-      text: an iframe srcdoc document
-    urlPrefix: browsers.html
-      text: active document
-      text: ancestor browsing context
-      text: browsing context
-      text: browsing context container
-      text: creating a new Document object
-      text: creator Document
-      text: nested browsing context
-      text: sandboxed origin browsing context flag
-      text: sandboxing flag set
-      text: top-level browsing context
-      text: origin
-      text: opaque identifier; url: origin
-    urlPrefix: webappapis.html
-      text: incumbent settings object
-      text: settings object
-      text: relevant settings object; url: relevant-settings-object-for-a-global-object
-      text: responsible document
-      text: global object
-      text: script settings for browsing contexts
-      text: document environment
-      text: worker environment
-  type: attribute
-    urlPrefix: webstorage.html
-      text: sessionStorage; for: WindowSessionStorage; url: the-sessionstorage-attribute
-urlPrefix: http://www.w3.org/TR/mixed-content/; spec: MIX
+    text: url; url: concept-url
+
+spec: MIX; urlPrefix: https://w3c.github.io/webappsec-mixed-content/
   type: dfn
-    text: a priori authenticated url
-urlPrefix: http://www.w3.org/TR/service-workers/; spec: SERVICE-WORKERS
-  type: interface
-    text: ServiceWorker; url: service-worker-obj
-urlPrefix: http://www.w3.org/2014/Process-20140801/; spec: W3C-PROCESS
+    text: prohibits mixed security contexts; url: categorize-settings-object
+
+spec: RFC6797; urlPrefix: https://tools.ietf.org/html/rfc6797
   type: dfn
-    text: modify a specification; url: rec-modify
-urlPrefix: https://url.spec.whatwg.org/; spec: URL
-  type: dfn
-    text: origin of a url; url: concept-url-origin
-    text: scheme; for: URL; url: concept-url-scheme
-  type: interface
-    text: URL
-urlPrefix: https://html.spec.whatwg.org/multipage/; spec: HTML
-  type: dfn
-    urlPrefix: workers.html
-      text: the worker's documents
-      text: set up a worker environment settings object
-    urlPrefix: webappapis.html
-      text: creation URL
-      text: HTTPS state
-  type: constructor
-    urlPrefix: workers.html
-      text: SharedWorker(); url: dom-sharedworker
-  type: interface
-    urlPrefix: workers.html
-      text: WorkerGlobalScope
-      text: Worker
-      text: SharedWorker
+    text: concurrent match; url: section-8.2
+    text: superdomain match; url: section-8.2
 </pre>
 <pre class="biblio">
 {
@@ -210,21 +168,135 @@ urlPrefix: https://html.spec.whatwg.org/multipage/; spec: HTML
 
   <h3 id="modifications-fetch">Fetch</h3>
 
-  1.  Introduce an <dfn>HSTS Priming Request</dfn> that:
+  <h4 id="modifications-fetch-main">Main Fetch Modifications</h4>
 
-      1.  Points at the root of a host (e.g. `https://example.com/`)
-      2.  Uses the `HEAD` method (`OPTIONS`?)
-      3.  Does not include credentials
-      4.  Does not follow redirects
-      5.  Has a referrer policy of `none`
-      6.  Has no `client`
-      7.  Includes a header named `Upgrade-Insecure-Requests` with a value of
-          `1` if the user agent supports the mechanism spelled out in
-          [[UPGRADE-INSECURE-REQUESTS]].
+  1.  After the current step 3 (which deals with `Upgrade-Insecure-Requests`),
+      add the following steps:
 
-  2.  Refactor a request's lifecycle to ensure that the priming request is made
-      at a reasonable location, and that the upgrade happens before mixed
-      content checks.
+      4.  If |request|'s <a for="request">client</a> <a>prohibits mixed security
+          contexts</a>, and |request|'s <a for="request">current url</a>'s
+          <a for="url">scheme</a> is "`http`" or "`ws`", and its
+          <a for="url">host</a> does not
+          <a lt="matches the HSTS cache">match the HSTS cache</a>, then
+          perform an <a>HSTS priming request</a> for |request|.
+
+  2.  Move the current step 6 (which deals with HSTS) before the current step 4
+      (which deals with CSP and mixed content).
+
+      Note: This isn't entirely accurate, as we probably want reporting to
+      happen before the upgrade (that is, before the current step 3). That's
+      a bug in the existing algorithm that I need to take care of.
+
+      Note: Maybe use the newly defined <a>HSTS cache</a> for the upgrade
+      instead of deferring to the RFC.
+
+  <h4 id="modifications-fetch-network">HTTP-network Fetch modifications</h4>
+
+  Modify <a>HTTP-network Fetch</a> as follows:
+
+  1.  After the current step 9 (which processes the `Set-Cookie` header),
+      execute the following steps:
+
+      10. If |response|'s <a>header list</a> contains one or more headers
+          named `Strict-Transport-Security`, then add an entry to the <a>HSTS
+          cache</a> with the following properties:
+
+          :   <a for="HSTS cache entry">host</a>
+          ::  |response|'s <a for="request">url</a>'s <a for="url">host</a>
+          :   <a for="HSTS cache entry">expiration</a>
+          ::  
+              ISSUE: Parse the header.
+          :   <a for="HSTS cache entry">subdomains</a>
+          ::
+              ISSUE: Parse the header.
+          :   <a for="HSTS cache entry">status</a>
+          ::  "`upgrade`"
+
+  <h4 id="modifications-fetch-priming">HSTS Priming Requests</h4>
+
+  To perform an <dfn>HSTS Priming Request</dfn> for |request|, run these steps:
+
+  1.  If |request|'s <a for="request">current url</a>'s <a for="url">scheme</a>
+      is not "`http`" or "`ws`", abort these steps.
+
+      Note: I'm assuming that Web Sockets are going to be folded into Fetch at
+      some point?
+
+  2.  Let |primer| be a new <a>request</a> whose properties are set as follows:
+
+      :   <a for="request">method</a>
+      ::  "`HEAD`"
+      :   <a for="request">url</a>
+      ::  A new <a>URL</a> whose scheme is "`https`", <a for="url">host</a> is
+          |request|'s <a for="request">current url</a>'s <a for="url">host</a>,
+          and <a for="url">port</a> is |request|'s <a for="request">current
+          url</a>'s <a for="url">port</a>
+      :   <a for="request">initiator</a>
+      ::  |request|'s <a for="request">initiator</a>
+      :   <a for="request">type</a>
+      ::  |request|'s <a for="request">type</a>
+      :   <a for="request">destination</a>
+      ::  |request|'s <a for="request">destination</a>
+      :   <a for="request">credentials mode</a>
+      ::  |request|'s <a for="request">credentials mode</a>
+      :   <a for="request">redirect mode</a>
+      ::  "`manual`"
+      :   <a for="request">client</a>
+      :   `null`
+      :   <a for="request">referrer policy</a>
+      ::  "`no-referrer`"
+
+  3.  <a>Append</a> a header named "`Upgrade-Insecure-Requests`" with a value of
+      "`1`" to |primer|'s <a>header list</a>.
+
+  4.  Let |response| be the result of performing an <a>HTTP-network-or-cache
+      fetch</a> using |primer|.
+
+  5.  If |response|'s <a>header list</a> does not contain one or more headers
+      named `Strict-Transport-Security`, then add an entry to the <a>HSTS
+      cache</a> with the following properties:
+
+      :   <a for="HSTS cache entry">host</a>
+      ::  |primer|'s <a for="request">url</a>'s <a for="url">host</a>
+      :   <a for="HSTS cache entry">expiration</a>
+      ::  A reasonable expiration. Perhaps 24 hours? 
+      :   <a for="HSTS cache entry">subdomains</a>
+      ::  "`exclude`"
+      :   <a for="HSTS cache entry">status</a>
+      ::  "`do not upgrade`"
+
+  <h4 id="modifications-fetch-hsts-cache">HSTS Cache</h4>
+
+  An <dfn>HSTS cache</dfn> consists of a collection of <dfn>HSTS cache
+  entry</dfn> objects, each with the following properties:
+
+  :   <dfn for="HSTS cache entry">host</dfn>
+  ::  A <a for="url">host</a>
+  :   <dfn for="HSTS cache entry">expiration</dfn>
+  ::  A timestamp, after which this entry is no longer valid
+  :   <dfn for="HSTS cache entry">subdomains</dfn>
+  ::  "`include`" or "`exclude`"
+  :   <dfn for="HSTS cache entry">status</dfn>
+  ::  "`upgrade`" or "`do not upgrade`"
+
+  <h4 id="modifications-fetch-hsts-cache-matching" algorithm>
+    Does |request| match the HSTS cache?
+  </h4>
+  A <a>request</a> (|request|) <dfn>matches the HSTS cache</dfn> if there exists
+  an <a>HSTS cache entry</a> |entry| in the user agent's <a>HSTS cache</a> such
+  that:
+
+  1.  The current time is not after |entry|'s
+      <a for="HSTS cache entry">expiration</a>
+
+  2.  |entry|'s <a for="HSTS cache entry">host</a> is a <a>concurrent match</a>
+      for |request|'s <a for="request">current url</a>'s <a for="url">host</a>
+      
+      or
+      
+      |entry|'s <a for="HSTS cache entry">subdomains</a> is "`include`", and
+      |entry|'s <a for="HSTS cache entry">host</a> is a <a>superdomain match</a>
+      for |request|'s <a for="request">current url</a>'s <a for="url">host</a>
 
   <h3 id="modifications-mixed-content">Mixed Content</h3>
 
@@ -236,9 +308,6 @@ urlPrefix: https://html.spec.whatwg.org/multipage/; spec: HTML
       implications.
 
   2.  Integrate the spec with Fetch.
-
-  3.  Expand the "Noting an HSTS Host" section to include a negative cache for
-      failed priming requests.
 
   ISSUE: Lots more specifics everywhere.
 </section>
