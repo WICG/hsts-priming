@@ -130,8 +130,11 @@ spec: RFC6797; urlPrefix: https://tools.ietf.org/html/rfc6797
   </pre>
 
   Before blocking this insecure request as mixed content, the user agent
-  performs an HSTS priming request to the root of the resource's host, as
-  follows:
+  checks whether the request <a lt="matches the HSTS cache">matches its HSTS
+  cache</a>.
+
+  If the resource did not match the HSTS cache, the user agent performs an HSTS
+  priming request over HTTPS to the root of the resource's host, as follows:
 
   <pre>
     HEAD / HTTP/1.1
@@ -146,7 +149,7 @@ spec: RFC6797; urlPrefix: https://tools.ietf.org/html/rfc6797
     ...
     Strict-Transport-Security: max-age=10886400; includeSubDomains
   </pre>
-    
+
   The user agent can then safely upgrade the initial request from HTTP to HTTPS,
   rather than blocking it as mixed content.
 
@@ -211,7 +214,7 @@ spec: RFC6797; urlPrefix: https://tools.ietf.org/html/rfc6797
           :   <a for="HSTS cache entry">host</a>
           ::  |response|'s <a for="request">url</a>'s <a for="url">host</a>
           :   <a for="HSTS cache entry">expiration</a>
-          ::  
+          ::
               ISSUE: Parse the header.
           :   <a for="HSTS cache entry">subdomains</a>
           ::
@@ -266,7 +269,7 @@ spec: RFC6797; urlPrefix: https://tools.ietf.org/html/rfc6797
       :   <a for="HSTS cache entry">host</a>
       ::  |primer|'s <a for="request">url</a>'s <a for="url">host</a>
       :   <a for="HSTS cache entry">expiration</a>
-      ::  A reasonable expiration. Perhaps 24 hours? 
+      ::  A reasonable expiration. Perhaps 24 hours?
       :   <a for="HSTS cache entry">subdomains</a>
       ::  "`exclude`"
       :   <a for="HSTS cache entry">status</a>
@@ -298,9 +301,9 @@ spec: RFC6797; urlPrefix: https://tools.ietf.org/html/rfc6797
 
   2.  |entry|'s <a for="HSTS cache entry">host</a> is a <a>concurrent match</a>
       for |request|'s <a for="request">current url</a>'s <a for="url">host</a>
-      
+
       or
-      
+
       |entry|'s <a for="HSTS cache entry">subdomains</a> is "`include`", and
       |entry|'s <a for="HSTS cache entry">host</a> is a <a>superdomain match</a>
       for |request|'s <a for="request">current url</a>'s <a for="url">host</a>
