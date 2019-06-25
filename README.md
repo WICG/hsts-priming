@@ -1,5 +1,6 @@
 
-# Specification 'hsts-priming'
+# Historical arvhice of "Specification 'hsts-priming'"
 
-This is the repository for hsts-priming. You're welcome to contribute! Let's make the Web rock our socks
-off!
+**Incubation on this specification has completed**
+
+Mozilla did some experimentation with this mechanism, and decided not to ship it. Google is pursuing the proposals in https://github.com/mikewest/webappsec-mixed-content/blob/master/proposed-level-2-roadmap.md#proposals.
