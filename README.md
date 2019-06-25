@@ -1,5 +1,5 @@
 
-# Historical arvhice of "Specification 'hsts-priming'"
+# Historical archive of "Specification 'hsts-priming'"
 
 **Incubation on this specification has completed**
 
